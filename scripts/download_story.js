@@ -1,6 +1,10 @@
-function downloadStory(profile_picture, is_viewing_story) {
-    if (profile_picture && is_viewing_story) {
-        const username = profile_picture.alt
+function downloadStory() {
+    const is_viewing_story = window.location.href.indexOf('stories') !== -1
+
+    if (is_viewing_story) {
+        const username = document.querySelector(
+            "a[role=link][tabindex='0'][href*='https://www.facebook']>img"
+        ).alt
         const url = document.head.getAttribute('data-story-url')
         let story = document.querySelectorAll('img[draggable=false]')
         let videos = document.querySelectorAll('video')
@@ -10,29 +14,22 @@ function downloadStory(profile_picture, is_viewing_story) {
 
         if (story && (!video || url === 'null'))
             chrome.runtime.sendMessage(null, {
-                site: 'facebook',
+                type: 'story',
                 username,
                 url: story[story.length - 1].src,
             })
         else {
             chrome.runtime.sendMessage(null, {
-                site: 'facebook',
+                type: 'story',
                 username,
                 url,
             })
             document.head.removeAttribute('data-story-url')
         }
-    }
-    // case when user accidentally clicks on the extension while he/she is not viewing any story
-    else
+    } else
         chrome.runtime.sendMessage(null, {
             noStoryAvailable: true,
         })
 }
 
-downloadStory(
-    document.querySelector(
-        "a[role=link][tabindex='0'][href*='https://www.facebook']>img"
-    ),
-    window.location.href.indexOf('stories') !== -1
-)
+downloadStory()

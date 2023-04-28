@@ -26,19 +26,19 @@ function handleInstall() {
 }
 
 function handleMessage(message, sender) {
-    const { site, username, url, noStoryAvailable } = message
+    const { type, username, url, time, noStoryAvailable, noPhotoAvailable } =
+        message
 
-    if (noStoryAvailable) {
+    if (noStoryAvailable || noPhotoAvailable) {
         animateIconFailed(sender.tab.id)
         return
     }
 
-    const date = new Date()
-    const date_string = `${date.getFullYear()}-${
-        date.getMonth() + 1
-    }-${date.getDate()}`
+    const date_string = formatDate(time ?? '')
     const extension = new RegExp(/\w{3,4}$/gm).exec(url)[0]
-    const filename = `${username}'s ${site} ${date_string} story.${extension}`
+    const filename = `${username}'s ${
+        type === 'photo' ? 'photo' : 'story'
+    } on ${date_string}.${extension}`
 
     chrome.downloads.download({
         url,
@@ -60,13 +60,41 @@ function handleClick(tab) {
         chrome.scripting.executeScript({
             target: { tabId: id },
             world: chrome.scripting.ExecutionWorld.MAIN,
-            files: ['scripts/getUrl.js'],
+            files: ['scripts/get_story_url.js'],
         })
         chrome.scripting.executeScript({
             target: { tabId: id },
-            files: ['scripts/download.js'],
+            files: ['scripts/download_story.js'],
+        })
+        chrome.scripting.executeScript({
+            target: { tabId: id },
+            files: ['scripts/download_photo.js'],
         })
     }
+}
+
+function formatDate(input_date) {
+    const current_date = new Date()
+    let date_string
+
+    if (input_date === '') {
+        const year = current_date.getFullYear()
+        const month = current_date.getMonth() + 1
+        const day = current_date.getDate()
+
+        date_string = `${year}-${month.toString().padStart(2, '0')}-${day
+            .toString()
+            .padStart(2, '0')}`
+    } else if (input_date.includes('at')) {
+        const year = current_date.getFullYear()
+        const formatted_date = input_date.split(' at ')[0]
+        date_string = `${formatted_date}, ${year}`
+    } else if (!input_date.includes(',')) {
+        const year = current_date.getFullYear()
+        date_string = `${input_date}, ${year}`
+    } else date_string = input_date
+
+    return date_string
 }
 
 async function fetchIcons() {
