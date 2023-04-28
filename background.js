@@ -26,19 +26,16 @@ function handleInstall() {
 }
 
 function handleMessage(message, sender) {
-    const { type, username, url, time, noStoryAvailable, noPhotoAvailable } =
-        message
+    const { type, username, url, time, nothingAvailable } = message
 
-    if (noStoryAvailable || noPhotoAvailable) {
+    if (nothingAvailable) {
         animateIconFailed(sender.tab.id)
         return
     }
 
     const date_string = formatDate(time ?? '')
     const extension = new RegExp(/\w{3,4}$/gm).exec(url)[0]
-    const filename = `${username}'s ${
-        type === 'photo' ? 'photo' : 'story'
-    } on ${date_string}.${extension}`
+    const filename = `${username}'s ${type} on ${date_string}.${extension}`
 
     chrome.downloads.download({
         url,
@@ -57,19 +54,22 @@ function handleClick(tab) {
     }
 
     if (url.indexOf(host) !== -1) {
-        chrome.scripting.executeScript({
-            target: { tabId: id },
-            world: chrome.scripting.ExecutionWorld.MAIN,
-            files: ['scripts/get_story_url.js'],
-        })
-        chrome.scripting.executeScript({
-            target: { tabId: id },
-            files: ['scripts/download_story.js'],
-        })
-        chrome.scripting.executeScript({
-            target: { tabId: id },
-            files: ['scripts/download_photo.js'],
-        })
+        if (url.indexOf('photo') !== -1)
+            chrome.scripting.executeScript({
+                target: { tabId: id },
+                files: ['scripts/download_photo.js'],
+            })
+        else if (url.indexOf('stories') !== -1) {
+            chrome.scripting.executeScript({
+                target: { tabId: id },
+                world: chrome.scripting.ExecutionWorld.MAIN,
+                files: ['scripts/get_story_url.js'],
+            })
+            chrome.scripting.executeScript({
+                target: { tabId: id },
+                files: ['scripts/download_story.js'],
+            })
+        }
     }
 }
 
